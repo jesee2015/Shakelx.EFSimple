@@ -1,28 +1,78 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-
-// For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+using Shakelx.EFSimple.Api.ViewModels;
+using Shakelx.EFSimple.Core.Entities;
 
 namespace Shakelx.EFSimple.Api.Controllers
 {
     public class AccountController : Controller
     {
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
+
+        public AccountController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
+        {
+            _userManager = userManager;
+            _signInManager = signInManager;
+        }
+
         // GET: /<controller>/
         public IActionResult Login()
         {
             return View();
         }
 
+        [HttpPost]
+        public IActionResult Login(RegisterViewModel model)
+        {
+            var claims = new List<Claim>(){
+                new Claim(ClaimTypes.Name,model.Email),
+                new Claim(ClaimTypes.Role,"admin")
+            };
+
+            var claimIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+            HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimIdentity));
+
+            return Ok();
+        }
+
+        [HttpGet]
         public IActionResult Register()
         {
             return View();
         }
+        [HttpPost]
+        public async Task<IActionResult> RegistorAsync(RegisterViewModel model)
+        {
+            if (TryValidateModel(model))
+            {
+                var user = new ApplicationUser
+                {
+                    Email = model.Email,
+                    UserName = model.Email,
+                    NormalizedUserName = model.Email,
+                };
 
-        [Authorize]
+                var res = await _userManager.CreateAsync(user, model.Password);
+                if (res.Succeeded)
+                {
+                    return RedirectToAction("index", "account");
+                }
+            }
+
+            return BadRequest("input error");
+        }
+
+        //[Authorize]
         public IActionResult Index()
         {
             return View();

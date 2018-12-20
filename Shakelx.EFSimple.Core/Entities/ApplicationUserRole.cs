@@ -5,8 +5,7 @@ using System.Text;
 
 namespace Shakelx.EFSimple.Core.Entities
 {
-    public class ApplicationUser : IdentityUser<int>
+    public class ApplicationUserRole : IdentityRole<int>
     {
-        public string HuKou { get; set; }
     }
 }

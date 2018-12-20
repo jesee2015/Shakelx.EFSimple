@@ -30,6 +30,7 @@ namespace Shakelx.EFSimple.Api
                     var logger = loggerFactory.CreateLogger<Program>();
                     logger.LogError(ex.InnerException.Message);
                 }
+                    
                 webHost.Run();
             }
             //CreateWebHostBuilder(args).Build().Run();

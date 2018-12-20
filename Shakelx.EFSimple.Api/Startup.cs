@@ -55,6 +55,8 @@ namespace Shakelx.EFSimple.Api
             {
                 app.UseDeveloperExceptionPage();
             }
+
+            app.UseStaticFiles();
             app.UseMvcWithDefaultRoute();
         }
     }
