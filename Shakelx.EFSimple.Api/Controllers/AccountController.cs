@@ -25,34 +25,58 @@ namespace Shakelx.EFSimple.Api.Controllers
         }
 
         // GET: /<controller>/
-        public IActionResult Login()
+        public IActionResult Login(string returlUrl = null)
         {
+            TempData["returlUrl"] = returlUrl;
             return View();
         }
 
         [HttpPost]
-        public IActionResult Login(RegisterViewModel model)
+        public async Task<IActionResult> Login(RegisterViewModel model, string returnUrl = null)
         {
-            var claims = new List<Claim>(){
+
+            var user = await _userManager.FindByNameAsync(model.Email);
+
+            var res = await _userManager.CheckPasswordAsync(user, model.Password);
+
+            if (res)
+            {
+                var claims = new List<Claim>(){
                 new Claim(ClaimTypes.Name,model.Email),
-                new Claim(ClaimTypes.Role,"admin")
-            };
+                new Claim(ClaimTypes.Role,"admin"),
+                //new Claim(ClaimTypes.Role,"system")
+                };
+                var claimIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                var principal = new ClaimsPrincipal(claimIdentity);
+                await _signInManager.SignInAsync(user, false);
 
-            var claimIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
-            HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimIdentity));
-
-            return Ok();
+                var u = HttpContext.User;
+                if (returnUrl == null)
+                {
+                    returnUrl = TempData["returnUrl"]?.ToString();
+                }
+                if (returnUrl != null)
+                {
+                    return Redirect(returnUrl);
+                }
+                else
+                {
+                    return RedirectToAction("index", "account");
+                }
+            }
+            return BadRequest("用户名或密码错误");
         }
 
         [HttpGet]
-        public IActionResult Register()
+        public IActionResult Register(string returlUrl = null)
         {
+            ViewData["returlUrl"] = returlUrl;
             return View();
         }
         [HttpPost]
-        public async Task<IActionResult> RegistorAsync(RegisterViewModel model)
+        public async Task<IActionResult> RegistorAsync(RegisterViewModel model, string returlUrl)
         {
+            ViewData["returlUrl"] = returlUrl;
             if (TryValidateModel(model))
             {
                 var user = new ApplicationUser
@@ -72,10 +96,16 @@ namespace Shakelx.EFSimple.Api.Controllers
             return BadRequest("input error");
         }
 
-        //[Authorize]
+        [Authorize]
         public IActionResult Index()
         {
             return View();
+        }
+
+        public async Task<IActionResult> LogoutAsync()
+        {
+            await _signInManager.SignOutAsync();
+            return RedirectToAction("Index", "Home");
         }
     }
 }
